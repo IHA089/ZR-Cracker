@@ -143,7 +143,7 @@ if __name__ == "__main__":
             print("This file not support...")
             sys.exit()
 
-        print("1\tBrute Force Attack\n2\tDictonary Attack")
+        print("1\tBrute Force Attack\n2\tDictionary Attack")
         try:
             select = int(input("Select ::: "))
         except KeyboardInterrupt:
