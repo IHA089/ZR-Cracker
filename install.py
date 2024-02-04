@@ -75,20 +75,20 @@ def main():
     check_dependencies()
     if check_os() == "linux":
         if check_root():
-            iha089_dir()
+            iha089_dir(check_os())
             pwd = get_working_dir()
             cmd = "cp -r {} /usr/share/ihaahi".format(pwd)
             os.system(cmd)
-            runner_create()
+            runner_create(check_os())
         else:
             print("Please run with root permission\n")
     elif check_os() == "termux":
-        iha089_dir()
+        iha089_dir(check_os())
         check_termux_runner()
         pwd = get_working_dir()
         cmd = "cp -r {} /data/data/com.termux/usr/share/ihaahi".format(pwd)
         os.system(cmd)
-        runner_create()
+        runner_create(check_os())
 
     elif check_os() == "window":
         print("type `python start.py` here")
