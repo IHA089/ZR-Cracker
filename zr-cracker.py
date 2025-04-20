@@ -131,24 +131,18 @@ if __name__ == "__main__":
     home_logo()
     print("\n\nZIP & RAR file password cracker\n")
     try:
-        compressed_file_name = input("Enter file name :")
+        compressed_file_path = input("Enter file name(with full path) :")
     except KeyboardInterrupt:
         print("Exit by user...")
         sys.exit()
-    pwd = os.getcwd()
-    compressed_file_path = pwd+"/"+compressed_file_name
 
     if not os.path.isfile(compressed_file_path):
-        print("File `{}` not found, please provide correct path".format(compressed_file_name))
+        print("File `{}` not found, please provide correct path".format(compressed_file_path))
         print("Exiting....")
         sys.exit()
     else:  
         ff = compressed_file_name.split(".")
-        if ff[1] == "rar":
-            compressed_file_path = pwd+"/"+compressed_file_name
-        elif ff[1] == "zip":
-            compressed_file_path = pwd+"/"+compressed_file_name
-        else:
+        if ff[1] not in ['rar', 'zip']:
             print("This file not support...")
             sys.exit()
 
