@@ -3,6 +3,8 @@ import sys
 import secrets
 import string
 import time
+import argparse
+import itertools
 try:
     import pyzipper
 except ImportError:
@@ -27,11 +29,6 @@ def home_logo():
 IHA089: Navigating the Digital Realm with Code and Security - Where Programming Insights Meet Cyber Vigilance.
     """)
 
-def Generate_Random_Password():
-    length = secrets.choice(range(4, 11))  
-    characters = string.ascii_letters + string.digits + string.punctuation
-    password = ''.join(secrets.choice(characters) for _ in range(length))
-    return password
 
 def update_terminal_lines(total_tries,  current_try, elapsed_time):
     print("===============================================")
@@ -50,6 +47,7 @@ def check_zip_password(a, zip_path, password, start_time):
         with pyzipper.AESZipFile(zip_path, 'r') as zf:
             _ = zf.read(zf.namelist()[0], pwd=password.encode('utf-8'))
         total_time = time.time()-start_time
+        password = password+"                  "
         print("===============================================")
         print(f"Total time taken ::: {total_time:.2f} seconds")
         print("Total password tries ::: {}".format(a))
@@ -69,6 +67,7 @@ def check_rar_password(a, rar_path, password, start_time):
         try:
             rf.testrar(pwd=password.encode('utf-8'))
             total_time = time.time()-start_time
+            password = password+"              "
             print("===============================================")
             print(f"Total time taken ::: {total_time:.2f} seconds")
             print("Total password tries ::: {}".format(a))
@@ -83,89 +82,149 @@ def check_rar_password(a, rar_path, password, start_time):
         except:
             time.sleep(4)
 
-def Brute_Force_Attack(ftype, compressed_file_path):
+def Brute_Force_Attack(file_path, charset, max_length):
+    if not os.path.exists(file_path):
+        print(f"Error: File {file_path} does not exist.")
+        return
+
+    file_ext = os.path.splitext(file_path)[1].lower()
     flag=True
     i=1
-    try:
-        start_time = time.time()
-        while flag:
-            gen_pass = Generate_Random_Password()
-            if ftype == "zip":
-                flag = check_zip_password(i, compressed_file_path, gen_pass, start_time)
-            elif ftype == "rar":
-                flag = check_rar_password(i, compressed_file_path, gen_pass, start_time)
-            i=i+1
-    except KeyboardInterrupt:
-        print("\n\n\n\n\n\nExit by user....")
-        sys.exit()
 
-def Dictonary_Attack(ftype, compressed_file_path, passwod_list_path):
-    file = open(passwod_list_path, 'r')
-    passwords = file.readlines()
-    file.close()
+    if file_ext == ".zip":
+        try:
+            start_time = time.time()
+            for length in range(1, max_length+1):
+                for combo in itertools.product(charset, repeat=length):
+                    password = ''.join(combo)
+                    flag = check_zip_password(i, file_path, password, start_time)
+                    i = i+1
+                    if flag == False:
+                        return 0
+        except KeyboardInterrupt:
+            print("\n\n\n\n\nExit by user....")
+            return 1
+    elif file_ext == ".rar":
+        try:
+            start_time = time.time()
+            for length in range(1, max_length+1):
+                for combo in itertools.product(charset, repeat=length):
+                    password = ''.join(combo)
+                    flag = check_rar_password(i, file_path, gen_pass, start_time)
+                    i=i+1
+                    if flag == False:
+                        return 0
+        except KeyboardInterrupt:
+            print("\n\n\n\n\n\nExit by user....")
+            return 1
+    else:
+        print(f"Error: Unsupported file format {file_ext}")
+        return 
 
-    i=0
-    j=0
-    try:
-        start_time = time.time()
-        for password in passwords:
-            password = password.replace("\n", "")
-            if ftype == "zip":
-                flag = check_zip_password(j, compressed_file_path, password, start_time)
-            elif ftype == "rar":
-                flag = check_rar_password(j, compressed_file_path, password, start_time)
-            j=j+1
-            if flag == False:
-                i=1
-                break
-    except KeyboardInterrupt:
-        print("Exit by user...")
-        sys.exit()
+def Dictonary_Attack(file_path, wordlist_path):
+    if not os.path.exists(file_path):
+        print(f"Error: File {file_path} does not exist.")
+        return
+    if not os.path.exists(wordlist_path):
+        print(f"Error: Wordlist {wordlist_path} does not exist.")
+        return
+
+    file_ext = os.path.splitext(file_path)[1].lower()
+
+    with open(wordlist_path, 'r', encoding='utf-8', errors='ignore') as passwords:
+        i=0
+        j=0
+
+        if file_ext == ".zip":
+            try:
+                start_time = time.time()
+                for password in passwords:
+                    password = password.strip()
+                    flag = check_zip_password(j, file_path, password, start_time)
+                    j = j+1
+
+                    if flag == False:
+                        return
+            except KeyboardInterrupt:
+                print("Exit by user...")
+                return
+        elif file_ext == ".rar":
+            try:
+                start_time = time.time()
+                for password in passwords:
+                    password = password.strip()
+                    flag = check_rar_password(j, file_path, password, start_time)
+                    j=j+1
+                    if flag == False:
+                        return
+            except KeyboardInterrupt:
+                print("Exit by user...")
+                return        
         
-    if i==0:
-        print("Password not found in wordlist...")
-        sys.exit()
+        if i==0:
+            print("Password not found in wordlist...")
+            return
 
+def main():
+    parser = argparse.ArgumentParser(
+        description="zr-cracker: A tool for cracking zip/rar archives.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  python3 zr_cracker.py --file locked.zip --bruteforce "
+            "--charset abcdefghijklmnopqrstuvwxyz --max-length 4\n"
+            "  python3 zr_cracker.py --file secret.rar --dictionary --wordlist rockyou.txt"
+        )
+    )
+
+    parser.add_argument(
+        "--file",
+        type=str,
+        help="Path to the zip/rar file to crack",
+        required=True
+    )
+    parser.add_argument(
+        "--bruteforce",
+        action="store_true",
+        help="Use brute-force cracking mode"
+    )
+    parser.add_argument(
+        "--dictionary",
+        action="store_true",
+        help="Use dictionary-based cracking mode"
+    )
+    parser.add_argument(
+        "--charset",
+        type=str,
+        help="Characters to use for brute-force (e.g., abcdefghijklmnopqrstuvwxyz)"
+    )
+    parser.add_argument(
+        "--max-length",
+        type=int,
+        help="Maximum password length for brute-force"
+    )
+    parser.add_argument(
+        "--wordlist",
+        type=str,
+        help="Path to the wordlist file for dictionary cracking"
+    )
+
+    args = parser.parse_args()
+
+    if args.bruteforce and args.dictionary:
+        parser.error("Cannot use both --bruteforce and --dictionary modes simultaneously.")
+    if not args.bruteforce and not args.dictionary:
+        parser.error("Must specify either --bruteforce or --dictionary mode.")
+    if args.bruteforce and (not args.charset or not args.max_length):
+        parser.error("--bruteforce requires --charset and --max-length.")
+    if args.dictionary and not args.wordlist:
+        parser.error("--dictionary requires --wordlist.")
+
+    if args.bruteforce:
+        Brute_Force_Attack(args.file, args.charset, args.max_length)
+    elif args.dictionary:
+        Dictonary_Attack(args.file, args.wordlist)
 
 if __name__ == "__main__":
     home_logo()
-    print("\n\nZIP & RAR file password cracker\n")
-    try:
-        compressed_file_path = input("Enter file name(with full path) :")
-    except KeyboardInterrupt:
-        print("Exit by user...")
-        sys.exit()
-
-    if not os.path.isfile(compressed_file_path):
-        print("File `{}` not found, please provide correct path".format(compressed_file_path))
-        print("Exiting....")
-        sys.exit()
-    else:  
-        ff = compressed_file_name.split(".")
-        if ff[1] not in ['rar', 'zip']:
-            print("This file not support...")
-            sys.exit()
-
-        print("1\tBrute Force Attack\n2\tDictionary Attack")
-        try:
-            select = int(input("Select ::: "))
-        except KeyboardInterrupt:
-            print("Exit by user...")
-            sys.exit()
-        if select == 1:
-            if ff[1] == "zip":
-                Brute_Force_Attack("zip", compressed_file_path)
-            if ff[1] == "rar":
-                Brute_Force_Attack("rar", compressed_file_path)
-        elif select == 2:
-            try:
-                pass_file = input("Enter wordlist(full path) :")
-            except KeyboardInterrupt:
-                print("Exit by user...")
-                sys.exit()
-            if ff[1] == "zip":
-                Dictonary_Attack("zip", compressed_file_path, pass_file)
-            if ff[1] == "rar":
-                Dictonary_Attack("rar", compressed_file_path, pass_file)            
-        else:
-            print("Please selct `1` or `2`")
+    main()
